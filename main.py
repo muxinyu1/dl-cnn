@@ -2,7 +2,7 @@ import wandb
 from genericpath import exists
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingLR
 import models
 import os
 import argparse
@@ -149,13 +149,13 @@ if __name__ == '__main__':
     n_classes = len(info['label'])
     DataClass = getattr(medmnist, info['python_class'])
 
-    data_transform_train = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),        # 随机旋转，最大旋转角度为15度
-        transforms.RandomAffine(degrees=15, translate=(0.1, 0.1)),  # 随机仿射变换，旋转最大15度，平移范围为10%
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[.5], std=[.5])
-    ])
+    # data_transform_train = transforms.Compose([
+    #     transforms.RandomHorizontalFlip(),
+    #     transforms.RandomRotation(15),        # 随机旋转，最大旋转角度为15度
+    #     transforms.RandomAffine(degrees=15, translate=(0.1, 0.1)),  # 随机仿射变换，旋转最大15度，平移范围为10%
+    #     transforms.ToTensor(),
+    #     transforms.Normalize(mean=[.5], std=[.5])
+    # ])
 
 
     data_transform_valid_test = transforms.Compose([
@@ -165,7 +165,7 @@ if __name__ == '__main__':
 
     # download dataset first and modify the data_path accordingly
     data_path = '../'
-    train_dataset = DataClass(root=data_path, split='train', transform=data_transform_train, size=64, download=download)
+    train_dataset = DataClass(root=data_path, split='train', transform=data_transform_valid_test, size=64, download=download)
     valid_dataset = DataClass(root=data_path, split='val', transform=data_transform_valid_test, size=64, download=download)
     test_dataset = DataClass(root=data_path, split='test', transform=data_transform_valid_test, size=64, download=download)
 
@@ -182,6 +182,6 @@ if __name__ == '__main__':
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = RangerAdaBelief(model.parameters(), lr=lr)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
+    scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs)
 
     run(model, train_dataset, valid_dataset, test_dataset, criterion, optimizer, scheduler, args.save_dir, data_path, num_epochs=num_epochs)
