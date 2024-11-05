@@ -147,7 +147,7 @@ if __name__ == '__main__':
     test_dataset = DataClass(root=data_path, split='test', transform=data_transform, size=64, download=download)
 
     # about training
-    num_epochs = 5
+    num_epochs = 30
     lr = 0.001
     batch_size = 64
 
