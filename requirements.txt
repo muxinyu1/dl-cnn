@@ -6,3 +6,4 @@ opencv-python
 scikit-learn
 medmnist
 wandb
+ranger-adabelief

@@ -11,11 +11,15 @@ from tqdm import tqdm
 import torchvision.transforms as transforms
 import medmnist
 from medmnist import INFO, Evaluator
+from ranger_adabelief import RangerAdaBelief
+
 
 # Note that: here we provide a basic solution for training and testation.
 # You can directly change it if you find something wrong or not good enough.
 
-def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, save_dir, data_path, num_epochs=20):
+import numpy as np
+
+def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, save_dir, data_path, num_epochs=20, patience=5):
 
     def train(model, train_loader, optimizer, criterion):
         model.train(True)
@@ -68,6 +72,8 @@ def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, 
         return metrics[0], metrics[1]
 
     best_acc = 0.0
+    epochs_without_improvement = 0  # 记录多少个epoch没有提升
+
     if not exists(save_dir):
         os.makedirs(save_dir)
     
@@ -98,10 +104,18 @@ def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, 
         # Log validation metrics to wandb
         wandb.log({"val_auc": val_auc, "val_acc": val_acc, "epoch": epoch})
 
-        print()
+        # Check for early stopping condition
         if val_acc > best_acc:
             best_acc = val_acc
             best_model = model
+            epochs_without_improvement = 0  # 重置为 0
+        else:
+            epochs_without_improvement += 1
+
+        # Early stopping condition
+        if epochs_without_improvement >= patience:
+            print(f"Early stopping triggered at epoch {epoch+1}")
+            break
 
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=10)
     with torch.no_grad():
@@ -120,6 +134,7 @@ def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, 
     # Finish the wandb run
     wandb.finish()
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='hw1')
     parser.add_argument('--save_dir', type=str, default='./checkpoints/', help='model save path')
@@ -135,16 +150,25 @@ if __name__ == '__main__':
     n_classes = len(info['label'])
     DataClass = getattr(medmnist, info['python_class'])
 
-    data_transform = transforms.Compose([
+    data_transform_train = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(15),        # 随机旋转，最大旋转角度为15度
+        transforms.RandomAffine(degrees=15, translate=(0.1, 0.1)),  # 随机仿射变换，旋转最大15度，平移范围为10%
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[.5], std=[.5])
+    ])
+
+
+    data_transform_valid_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[.5], std=[.5])
     ])
 
     # download dataset first and modify the data_path accordingly
     data_path = '../'
-    train_dataset = DataClass(root=data_path, split='train', transform=data_transform, size=64, download=download)
-    valid_dataset = DataClass(root=data_path, split='val', transform=data_transform, size=64, download=download)
-    test_dataset = DataClass(root=data_path, split='test', transform=data_transform, size=64, download=download)
+    train_dataset = DataClass(root=data_path, split='train', transform=data_transform_train, size=64, download=download)
+    valid_dataset = DataClass(root=data_path, split='val', transform=data_transform_valid_test, size=64, download=download)
+    test_dataset = DataClass(root=data_path, split='test', transform=data_transform_valid_test, size=64, download=download)
 
     # about training
     num_epochs = 30
@@ -158,7 +182,7 @@ if __name__ == '__main__':
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    optimizer = RangerAdaBelief(model.parameters(), lr=lr)
     scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs)
 
     run(model, train_dataset, valid_dataset, test_dataset, criterion, optimizer, scheduler, args.save_dir, data_path, num_epochs=num_epochs)
