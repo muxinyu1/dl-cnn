@@ -197,7 +197,7 @@ if __name__ == "__main__":
     file_name_to_export = "figs/gradient"
 
     # Ensure the model and input image are on the same device (GPU if available)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     pretrained_model = torch.load(model).to(device)
     prep_img = prep_img.to(device)
 
