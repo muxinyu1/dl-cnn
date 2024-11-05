@@ -141,7 +141,7 @@ if __name__ == '__main__':
     ])
 
     # download dataset first and modify the data_path accordingly
-    data_path = './'
+    data_path = '../'
     train_dataset = DataClass(root=data_path, split='train', transform=data_transform, size=64, download=download)
     valid_dataset = DataClass(root=data_path, split='val', transform=data_transform, size=64, download=download)
     test_dataset = DataClass(root=data_path, split='test', transform=data_transform, size=64, download=download)
