@@ -175,11 +175,10 @@ def get_positive_negative_saliency(gradient):
     neg_saliency = np.maximum(0, -gradient) / -gradient.min()
     return pos_saliency, neg_saliency
 
-
 if __name__ == "__main__":
     data_flag = 'pathmnist'
     data_path = '../'
-    model_path = "../best_model.pt"
+    model = "../best_model.pt"
     download = False
     info = INFO[data_flag]
     DataClass = getattr(medmnist, info['python_class'])
@@ -189,21 +188,19 @@ if __name__ == "__main__":
     ])
     dataset = DataClass(root=data_path, split='test', transform=data_transform, size=64, download=download)
     img, class_vec = dataset[0]
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # Prepare image with gradients enabled
-    prep_img = torch.tensor(img).unsqueeze(0).to(device)
-    prep_img.requires_grad = True
-    class_vec = torch.tensor(class_vec).to(device)  # Ensure the target class tensor is also on the correct device
-    
+    prep_img = torch.tensor(img).unsqueeze(0)
+    prep_img = Variable(prep_img, requires_grad=True)
+    class_vec = torch.tensor(class_vec)  # Convert to tensor if it's a numpy array
+
     # Now you can safely apply torch.argmax()
     target_class = torch.argmax(class_vec).item()
     file_name_to_export = "figs/gradient"
-    
-    # Load model and ensure it’s on the correct device
-    model_instance = model_A(num_classes=9)
-    model_instance.load_state_dict(torch.load(model_path))
-    pretrained_model = model_instance.to(device)
-    
+
+    # Ensure the model and input image are on the same device (GPU if available)
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    pretrained_model = torch.load(model).to(device)
+    prep_img = prep_img.to(device)
+
     save_gradient_images(
         prep_img.detach().cpu().numpy()[0], file_name_to_export + "_original"
     )
