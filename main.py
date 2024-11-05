@@ -2,8 +2,7 @@ import wandb
 from genericpath import exists
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import models
 import os
 import argparse
@@ -173,7 +172,7 @@ if __name__ == '__main__':
     # about training
     num_epochs = 30
     lr = 0.001
-    batch_size = 32
+    batch_size = 64
 
     # model initialization
     model = models.model_B(num_classes=n_classes)
@@ -183,6 +182,6 @@ if __name__ == '__main__':
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = RangerAdaBelief(model.parameters(), lr=lr)
-    scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
 
     run(model, train_dataset, valid_dataset, test_dataset, criterion, optimizer, scheduler, args.save_dir, data_path, num_epochs=num_epochs)
