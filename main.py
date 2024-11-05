@@ -1,3 +1,4 @@
+import wandb
 from genericpath import exists
 import torch
 import torch.nn as nn
@@ -52,7 +53,6 @@ def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, 
             outputs = outputs.softmax(dim=-1)
             labels = labels.float().resize_(len(labels), 1)
 
-
             y_true = torch.cat((y_true, labels.cpu()), 0)
             y_score = torch.cat((y_score, outputs.cpu()), 0)
         
@@ -70,6 +70,16 @@ def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, 
     best_acc = 0.0
     if not exists(save_dir):
         os.makedirs(save_dir)
+    
+    # Initialize wandb
+    wandb.init(project="medmnist-training", config={
+        "learning_rate": lr,
+        "epochs": num_epochs,
+        "batch_size": batch_size,
+        "model": "model_A",  # or any model you choose to track
+        "data": data_flag
+    })
+    
     for epoch in range(num_epochs):
         print('epoch:{:d}/{:d}'.format(epoch, num_epochs))
         print('*' * 100)
@@ -77,10 +87,16 @@ def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, 
         train_loss = train(model, train_loader, optimizer, criterion)
         print("training: {:.4f}".format(train_loss))
 
+        # Log training loss to wandb
+        wandb.log({"train_loss": train_loss, "epoch": epoch})
+
         valid_loader = torch.utils.data.DataLoader(valid_set, batch_size=batch_size, shuffle=False, num_workers=10)
         with torch.no_grad():
             val_auc, val_acc = valid_or_test(model, valid_loader, 'val')
         print('valid auc: %.3f  acc:%.3f' % (val_auc, val_acc))
+
+        # Log validation metrics to wandb
+        wandb.log({"val_auc": val_auc, "val_acc": val_acc, "epoch": epoch})
 
         print()
         if val_acc > best_acc:
@@ -91,9 +107,18 @@ def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, 
     with torch.no_grad():
         test_auc, test_acc = valid_or_test(model, test_loader, 'test')
     print('test auc: %.3f  acc:%.3f' % (test_auc, test_acc))
-        
+
+    # Log test metrics to wandb
+    wandb.log({"test_auc": test_auc, "test_acc": test_acc})
+
+    # Save the best model
     torch.save(best_model, os.path.join(save_dir, 'best_model.pt'))
 
+    # Log the model artifact to wandb
+    wandb.save(os.path.join(save_dir, 'best_model.pt'))
+    
+    # Finish the wandb run
+    wandb.finish()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='hw1')
