@@ -173,7 +173,7 @@ if __name__ == '__main__':
     # about training
     num_epochs = 30
     lr = 0.001
-    batch_size = 64
+    batch_size = 32
 
     # model initialization
     model = models.model_B(num_classes=n_classes)
