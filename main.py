@@ -76,7 +76,7 @@ def run(model, train_set, valid_set, test_set, criterion, optimizer, scheduler, 
         "learning_rate": lr,
         "epochs": num_epochs,
         "batch_size": batch_size,
-        "model": "model_A",  # or any model you choose to track
+        "model": "model_B",  # or any model you choose to track
         "data": data_flag
     })
     
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     batch_size = 64
 
     # model initialization
-    model = models.model_A(num_classes=n_classes)
+    model = models.model_B(num_classes=n_classes)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
