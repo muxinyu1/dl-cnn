@@ -187,6 +187,9 @@ if __name__ == "__main__":
     img, class_vec = dataset[0]
     prep_img = torch.tensor(img).unsqueeze(0)
     prep_img = Variable(prep_img, requires_grad=True)
+    class_vec = torch.tensor(class_vec)  # Convert to tensor if it's a numpy array
+
+    # Now you can safely apply torch.argmax()
     target_class = torch.argmax(class_vec).item()
     file_name_to_export = "figs/gradient"
     pretrained_model = torch.load(model).to(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))
