@@ -3,6 +3,7 @@ Created on Thu Oct 26 11:23:47 2017
 
 @author: Utku Ozbulak - github.com/utkuozbulak
 """
+import os
 import medmnist
 import torch
 from torch.nn import ReLU
@@ -137,6 +138,7 @@ def save_gradient_images(gradient, file_name):
     gradient /= gradient.max()
     # Save image
     path_to_file = file_name + ".png"
+    os.makedirs(os.path.dirname(path_to_file), exist_ok=True)
     save_image(gradient, path_to_file)
 
 
